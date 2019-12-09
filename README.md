@@ -1,7 +1,8 @@
 [<img src="https://cdn.anychart.com/images/logo-transparent-segoe.png?2" width="234px" alt="AnyChart - Robust JavaScript/HTML5 Chart library for any project">](https://anychart.com)
 # Anychart Vue integration
 
-This example shows how to use Anychart with Vue.
+Read metrics from timeseries db(victoriametric) and draw chart
+I want run graphs on my router and i cant build grafana, chronograf or use prometheus, thus write this)
 
 > The component of Vue 2.0 for AnyChart
 
@@ -10,7 +11,7 @@ To run this sample:
 
 Clone the repository from github.com:
 ```
-$ git clone git@github.com:anychart-integrations/anychart-vue.git
+$ git clone git@https://github.com/temorfeouz/anychart-vue.git
 ```
 
 Navigate to the repository folder:
