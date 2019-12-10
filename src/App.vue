@@ -35,7 +35,17 @@
 
 <script>
 /* eslint-disable */
-
+function timeConverter(UNIX_timestamp){
+  var a = new Date(UNIX_timestamp );
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var year = a.getFullYear();
+  var month = months[a.getMonth()];
+  var date = a.getDate();
+  var hour = a.getHours();
+  var min = a.getMinutes();
+  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min  ;
+  return time;
+}
   import VueAnychart from './components/VueAnychart'
   import * as data from './data/data'
   import Anychart from 'anychart'
@@ -56,62 +66,103 @@ import { axios } from '@/plugins/axios'
         xAxisIsModified: false,
         pieDataIsModified: false
       }
-      axios.get('http://192.168.1.253:8428/api/v1/export?match={__name__=~%22measurement.*%22}').then(
+      axios.get('http://localhost:8428/api/v1/export?match={__name__=~%22measurement.*%22}').then(
         response =>  {
           // this.$data.servdata=response.data
 
 
           this.$data.CombineOptions= {
             'chart': {
-              'title': 'Combination of Column, Spline-Area and Spline Chart',
+              'title': 'Atmosphere info',
               'animation': true,
               'tooltip': {'displayMode': 'union'},
               'interactivity': {'hoverMode': 'by-x'},
               'series': [ {
                 'seriesType': 'spline',
-                'name': 'Line',
-                'normal': {'stroke': {'color': '#ef6c00', 'thickness': 2.5}},
+                'name': 'Humidity',
+                'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
                 'data': [
-                  // {'x': 'P1', 'value': 1740},
-                  // {'x': 'P2', 'value': 1970},
-                  // {'x': 'P3', 'value': 1550},
-                  // {'x': 'P4', 'value': 1500},
-                  // {'x': 'P5', 'value': 6600},
-                  // {'x': 'P6', 'value': 8500},
-                  // {'x': 'P7', 'value': 3700},
-                  // {'x': 'P8', 'value': 1000},
-                  // {'x': 'P9', 'value': 4400},
-                  // {'x': 'P10', 'value': 3220}
                 ]
-              }],
+              },
+                {
+                  'seriesType': 'spline',
+                  'name': 'Temperature',
+                  'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                , {
+                  'seriesType': 'spline',
+                  'name': 'Gas',
+                  'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                },{
+                  'seriesType': 'spline',
+                  'name': 'Preasure',
+                  'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+              ],
               'type': 'column'
             }
           }
 
 
-          try {
+
             response.data.split(`
 `).forEach(v=>{
- var js =JSON.parse(v)
 
-  if (js.metric!=undefined && js.metric.__name__=="measurement_humidity"){
-    this.$data.CombineOptions.chart.series.data=[];
-   for ( var i=0;i<js.values.length;i++){
-     // console.log(this.$data.CombineOptions.chart.series)
-     this.$data.CombineOptions.chart.series.data.push({'x': js.timestamps[i], 'value': js.values[i]})
-   }
+  if (!v.includes("tag1")&& v!="")
+  {
+    // console.log("???")
+    // console.log(v)
+    try {
+      var js =JSON.parse(v)
 
-    console.log(this.$data.CombineOptions.chart.series.data)
+      // console.log(this.$data)
+      if (js.metric!=undefined ){
+        if (js.metric.__name__=="measurement_humidity"){
+          for ( var i=0;i<js.values.length;i++){
+            if (js.values[i]==0){continue}
+            this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
+          }
+        }
+        if (js.metric.__name__=="measurement_temperature"){
+          for ( var i=0;i<js.values.length;i++){
+            if (js.values[i]< -60){continue}
+            this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
+          }
+        }
+        if (js.metric.__name__=="measurement_gas"){
+          for ( var i=0;i<js.values.length;i++){
+            if (js.values[i]==0){continue}
+            this.$data.CombineOptions.chart.series[2].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
+          }
+        }
+        // if (js.metric.__name__=="measurement_preassure"){
+        //   for ( var i=0;i<js.values.length;i++){
+        //     if (js.values[i]==0){continue}
+        //     this.$data.CombineOptions.chart.series[3].data.push({'x': js.timestamps[i], 'value': js.values[i]})
+        //   }
+        // }
+      }
+
+    }catch (e) {
+      // console.log(e)
+      // console.log(response)
+
+    }
+
   }
+
             })
 
-          }catch (e) {
-            console.log(e)
-          }
 
-        })
-        .catch((error) => console.log(error.response.data));
 
+        }).catch((error) => console.log("ERRRR_",error.response));
+console.log(ret)
       return ret
     },
     mounted() {
