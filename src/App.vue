@@ -21,7 +21,11 @@
         <!--<button class="btn btn-primary" @click.once="modifiedXAxis" :disabled="xAxisIsModified == true">Modify xAxis-->
         <!--</button>-->
       <!--</section>-->
-
+      <input id="period" value="10m" v-model="period">
+      <input id="startTime" value="" v-model="startTime">
+      <input id="endTime" value="" v-model="endTime">
+      <button class="btn btn-primary" @click="updateChartData">Update data
+      </button>
       <section class="chart-container">
         <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
       </section>
@@ -35,8 +39,21 @@
 
 <script>
 /* eslint-disable */
+/* use a function for the exact format desired... */
+function ISODateString(d){
+  function pad(n){return n<10 ? '0'+n : n}
+ var ret=  d.getUTCFullYear()+'-'
+    + pad(d.getUTCMonth()+1)+'-'
+    + pad(d.getUTCDate())+'T'
+   + pad(d.getUTCHours())+':'
+     + pad(d.getUTCMinutes())+':'
+     + pad(d.getUTCSeconds())+'Z'
+
+  return ret
+}
+
 function timeConverter(UNIX_timestamp){
-  var a = new Date(UNIX_timestamp );
+  var a = new Date(UNIX_timestamp*1000 );
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var year = a.getFullYear();
   var month = months[a.getMonth()];
@@ -57,6 +74,9 @@ import { axios } from '@/plugins/axios'
     },
     data() {
       var ret = {
+        period:"10m",
+        startTime:"",
+        endTime:"",
         Anychart: Anychart,
         // areaOptions: data.AreaData,
         // pieOptions: data.PieData,
@@ -67,117 +87,18 @@ import { axios } from '@/plugins/axios'
         xAxisIsModified: false,
         pieDataIsModified: false
       }
-      axios.get('http://localhost:8428/api/v1/export?match={__name__=~%22measurement.*%22}').then(
-        response =>  {
-          // this.$data.servdata=response.data
 
+      this.updateChartData()
 
-          this.$data.CombineOptions= {
-            'chart': {
-              'title': 'Temp + humidity',
-              'animation': true,
-              'tooltip': {'displayMode': 'union'},
-              'interactivity': {'hoverMode': 'by-x'},
-              'series': [ {
-                'seriesType': 'spline',
-                'name': 'Humidity',
-                'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
-                'data': [
-                ]
-              },
-                {
-                  'seriesType': 'spline',
-                  'name': 'Temperature',
-                  'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
-                  'data': [
-                  ]
-                }
-              ],
-              'type': 'column'
-            }
-          }
-
-          this.$data.CombineOptions1= {
-            'chart': {
-              'title': 'Gas + pressure',
-              'animation': true,
-              'tooltip': {'displayMode': 'union'},
-              'interactivity': {'hoverMode': 'by-x'},
-              'series': [  {
-                'seriesType': 'spline',
-                'name': 'Gas',
-                'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
-                'data': [
-                ]
-              },{
-                'seriesType': 'spline',
-                'name': 'Preassure',
-                'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
-                'data': [
-                ]
-              }
-              ],
-              'type': 'column'
-            }
-          }
-
-
-
-          response.data.split(`
-`).forEach(v=>{
-
-  if (!v.includes("tag1")&& v!="")
-  {
-    // console.log("???")
-    // console.log(v)
-    try {
-      var js =JSON.parse(v)
-
-      // console.log(this.$data)
-      if (js.metric!=undefined ){
-        if (js.metric.__name__=="measurement_humidity"){
-          for ( var i=0;i<js.values.length;i++){
-            if (js.values[i]==0){continue}
-            this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
-          }
-        }
-        if (js.metric.__name__=="measurement_temperature"){
-          for ( var i=0;i<js.values.length;i++){
-            if (js.values[i]< -60){continue}
-            this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
-          }
-        }
-        if (js.metric.__name__=="measurement_gas"){
-          for ( var i=0;i<js.values.length;i++){
-            if (js.values[i]==0){continue}
-            this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
-          }
-        }
-        if (js.metric.__name__=="measurement_preassure"){
-          for ( var i=0;i<js.values.length;i++){
-            if (js.values[i]==0){continue}
-            this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
-          }
-        }
-      }
-
-    }catch (e) {
-      // console.log(e)
-      // console.log(response)
-
-    }
-
-  }
-
-            })
-
-
-
-        }).catch((error) => console.log("ERRRR_",error.response));
-console.log(ret)
       return ret
     },
     mounted() {
+     var startdate = new Date()
+      startdate.setDate(startdate.getDate()-10)
+      this.$data.startTime=ISODateString(startdate)
+      this.$data.endTime=ISODateString(new Date())
+
+
       this.lineSeriesCount = this.$refs.lineChart.chart.getSeriesCount()
     },
     methods: {
@@ -202,14 +123,110 @@ console.log(ret)
 
         this.xAxisIsModified = true;
       },
-      updatePieData() {
-        this.$refs.pieChart.chart.data([
-          ['Product A', 4755],
-          ['Product B', 5205],
-          ['Product C', 1504]
-        ]);
 
-        this.pieDataIsModified = true;
+
+
+      updateChartData() {
+       var newPeriod=""
+        var startdate = new Date()
+        startdate.setDate(startdate.getDate()-10)
+        var startTime=ISODateString(startdate)
+        var endTime=ISODateString(new Date())
+        if (this.$data!=undefined){
+         console.log("!!",this.$data.period)
+         if (this.$data.period!=""){
+           newPeriod='&step='+this.$data.period
+         }
+          startTime=this.$data.startTime
+          endTime=this.$data.endTime
+        }
+        // newPeriod=""
+        var url ='http://192.168.1.253:8428/api/v1/query_range?start='+startTime+'&end='+endTime+''+newPeriod+'&query={__name__=~"measurement.*"}'
+       //'http://192.168.1.253:8428/api/v1/export?match={__name__=~%22measurement.*%22}'
+        console.log(url)
+        axios.get(url).then(
+          response =>  {
+
+            this.$data.CombineOptions= {
+              'chart': {
+                'title': 'Temp + humidity',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [ {
+                  'seriesType': 'spline',
+                  'name': 'Humidity',
+                  'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                },
+                  {
+                    'seriesType': 'spline',
+                    'name': 'Temperature',
+                    'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
+                    'data': [
+                    ]
+                  }
+                ],
+                'type': 'column'
+              }
+            }
+
+            this.$data.CombineOptions1= {
+              'chart': {
+                'title': 'Gas + pressure',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [  {
+                  'seriesType': 'spline',
+                  'name': 'Gas',
+                  'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                },{
+                  'seriesType': 'spline',
+                  'name': 'Preassure',
+                  'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+
+            response.data.data.result.forEach(v=>{
+                if (v.metric.__name__=="measurement_humidity"){
+                  for ( var i=0;i<v.values.length;i++){
+                    if (v.values[i][1]==0){continue}
+                    this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                  }
+                }
+                if (v.metric.__name__=="measurement_temperature"){
+                  for ( var i=0;i<v.values.length;i++){
+                    if (v.values[i][1]< -60){continue}
+                    this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                  }
+                }
+                if (v.metric.__name__=="measurement_gas"){
+                  for ( var i=0;i<v.values.length;i++){
+                    if (v.values[i][1]==0){continue}
+                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                  }
+                }
+                if (v.metric.__name__=="measurement_preassure"){
+                  for ( var i=0;i<v.values.length;i++){
+                    if (v.values[i][1]==0){continue}
+                    this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                  }
+                }
+                          })
+
+
+          }).catch((error) => alert("ERRRR_"+error));
+
+        // this.pieDataIsModified = true;
       },
       getRandomData() {
         return [
