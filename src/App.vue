@@ -1,10 +1,7 @@
 <template>
   <div class="container" id="app">
     <h1 class="text-center">
-      <a href="#" target="_blank">
-        Vue-AnyChart
-        <p>the component of Vue 2+ for AnyChart</p>
-      </a>
+    Atmosphere info
     </h1>
     <section class="chart-list">
       <!--<section class="chart-container">-->
@@ -27,6 +24,9 @@
 
       <section class="chart-container">
         <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
+      </section>
+      <section class="chart-container">
+        <vue-anychart :options="CombineOptions1" ref="combineChart1"></vue-anychart>
       </section>
     </section>
 
@@ -61,7 +61,8 @@ import { axios } from '@/plugins/axios'
         // areaOptions: data.AreaData,
         // pieOptions: data.PieData,
         // lineOptions: data.LineData,
-         CombineOptions: null,
+        CombineOptions: null,
+        CombineOptions1: null,
         lineSeriesCount: 0,
         xAxisIsModified: false,
         pieDataIsModified: false
@@ -73,7 +74,7 @@ import { axios } from '@/plugins/axios'
 
           this.$data.CombineOptions= {
             'chart': {
-              'title': 'Atmosphere info',
+              'title': 'Temp + humidity',
               'animation': true,
               'tooltip': {'displayMode': 'union'},
               'interactivity': {'hoverMode': 'by-x'},
@@ -91,19 +92,30 @@ import { axios } from '@/plugins/axios'
                   'data': [
                   ]
                 }
-                , {
-                  'seriesType': 'spline',
-                  'name': 'Gas',
-                  'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
-                  'data': [
-                  ]
-                },{
-                  'seriesType': 'spline',
-                  'name': 'Preasure',
-                  'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
-                  'data': [
-                  ]
-                }
+              ],
+              'type': 'column'
+            }
+          }
+
+          this.$data.CombineOptions1= {
+            'chart': {
+              'title': 'Gas + pressure',
+              'animation': true,
+              'tooltip': {'displayMode': 'union'},
+              'interactivity': {'hoverMode': 'by-x'},
+              'series': [  {
+                'seriesType': 'spline',
+                'name': 'Gas',
+                'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
+                'data': [
+                ]
+              },{
+                'seriesType': 'spline',
+                'name': 'Preassure',
+                'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
+                'data': [
+                ]
+              }
               ],
               'type': 'column'
             }
@@ -111,7 +123,7 @@ import { axios } from '@/plugins/axios'
 
 
 
-            response.data.split(`
+          response.data.split(`
 `).forEach(v=>{
 
   if (!v.includes("tag1")&& v!="")
@@ -138,15 +150,15 @@ import { axios } from '@/plugins/axios'
         if (js.metric.__name__=="measurement_gas"){
           for ( var i=0;i<js.values.length;i++){
             if (js.values[i]==0){continue}
-            this.$data.CombineOptions.chart.series[2].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
+            this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
           }
         }
-        // if (js.metric.__name__=="measurement_preassure"){
-        //   for ( var i=0;i<js.values.length;i++){
-        //     if (js.values[i]==0){continue}
-        //     this.$data.CombineOptions.chart.series[3].data.push({'x': js.timestamps[i], 'value': js.values[i]})
-        //   }
-        // }
+        if (js.metric.__name__=="measurement_preassure"){
+          for ( var i=0;i<js.values.length;i++){
+            if (js.values[i]==0){continue}
+            this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(js.timestamps[i]), 'value': js.values[i]})
+          }
+        }
       }
 
     }catch (e) {
